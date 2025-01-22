@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: employee-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: employee-app
+  template:
+    metadata:
+      labels:
+        app: employee-app
+    spec:
+      initContainers:
+      - name: init-db
+        image: postgres:15
+        command: 
+        - bash
+        - /scripts/init-db.sh
+        env:
+        - name: DB_HOST
+          value: postgres-service
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: password
+        - name: DB_NAME
+          value: employeedb
+        volumeMounts:
+        - name: init-scripts
+          mountPath: /scripts
+      containers:
+      - name: employee-app
+        image: employee-app:latest
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DB_HOST
+          value: postgres-service
+        - name: DB_NAME
+          value: employeedb
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secrets
+              key: password
+      volumes:
+      - name: init-scripts
+        configMap:
+          name: init-db-script
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-db-script
+data:
+  init-db.sh: |
+    #!/bin/bash
+    set -e
+    until PGPASSWORD=$POSTGRES_PASSWORD psql -h "$DB_HOST" -U "$POSTGRES_USER" -d postgres -c '\q'; do
+      >&2 echo "Postgres is unavailable - sleeping"
+      sleep 1
+    done
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h "$DB_HOST" -U "$POSTGRES_USER" -d postgres -c "SELECT 1 FROM pg_database WHERE datname = '$DB_NAME'" | grep -q 1 || \
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h "$DB_HOST" -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE \"$DB_NAME\""
+    echo "Database initialization complete"
