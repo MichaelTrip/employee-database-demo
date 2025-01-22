@@ -47,9 +47,13 @@ def get_db_connection():
         print(f"Database connection error: {e}")
         raise
 
+import random
+
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
+    
+    # Create table
     cur.execute('''
         CREATE TABLE IF NOT EXISTS employees (
             id SERIAL PRIMARY KEY,
@@ -58,7 +62,55 @@ def init_db():
             position VARCHAR(100)
         )
     ''')
+    
+    # List of sample first names and last names
+    first_names = [
+        'John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 
+        'Robert', 'Lisa', 'William', 'Emma', 'James', 'Olivia', 
+        'Daniel', 'Sophia', 'Joseph', 'Ava', 'Thomas', 'Isabella', 
+        'Christopher', 'Mia'
+    ]
+    
+    last_names = [
+        'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 
+        'Davis', 'Garcia', 'Rodriguez', 'Wilson', 'Martinez', 'Anderson', 
+        'Taylor', 'Thomas', 'Hernandez', 'Moore', 'Martin', 'Jackson', 
+        'Thompson', 'White'
+    ]
+    
+    positions = [
+        'Software Engineer', 'Product Manager', 'Data Analyst', 
+        'HR Specialist', 'Sales Representative', 'Marketing Coordinator', 
+        'Customer Support', 'Finance Analyst', 'Operations Manager', 
+        'Business Consultant'
+    ]
+    
+    # Insert 20 test records
+    for i in range(20):
+        # Generate a unique name
+        first_name = random.choice(first_names)
+        last_name = random.choice(last_names)
+        full_name = f"{first_name} {last_name}"
+        
+        # Generate a unique email
+        email = f"{first_name.lower()}.{last_name.lower()}_{i+1}@company.com"
+        
+        # Select a random position
+        position = random.choice(positions)
+        
+        # Insert the record
+        try:
+            cur.execute('''
+                INSERT INTO employees (name, email, position)
+                VALUES (%s, %s, %s)
+            ''', (full_name, email, position))
+        except Exception as e:
+            print(f"Error inserting record: {e}")
+    
+    # Commit the transactions
     conn.commit()
+    
+    # Close cursor and connection
     cur.close()
     conn.close()
 
