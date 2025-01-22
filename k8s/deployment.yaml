@@ -14,7 +14,7 @@ spec:
     spec:
       initContainers:
       - name: init-db
-        image: postgres:15
+        image: postgres:16
         command: 
         - bash
         - /scripts/init-db.sh
@@ -38,7 +38,8 @@ spec:
           mountPath: /scripts
       containers:
       - name: employee-app
-        image: employee-app:latest
+        image: ghcr.io/michaeltrip/employee-database-demo:latest
+        imagePullPolicy: always
         ports:
         - containerPort: 5000
         env:
